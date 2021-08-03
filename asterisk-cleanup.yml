@@ -39,10 +39,13 @@
         state: absent
       loop: "{{ instance }}"
 
-      
     - name: "Remove spool"
       file: 
         path: "/var/spool/asterisk-{{ item.id }}"
         state: absent
       loop: "{{ instance }}"
+
+- name: Import Playbook
+  import_playbook: asterisk-systemd-uninstall.yml
+
          

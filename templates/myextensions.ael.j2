@@ -1,0 +1,9 @@
+context placetel {
+
+	{{ item.exten }} =>  {
+		Wait(1);
+		Answer();
+		Playback(cisco_placetel_task.wav);
+		Hangup(); 
+		};
+};

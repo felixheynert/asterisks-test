@@ -1,0 +1,40 @@
+---
+- name: Asterisk SystemD Serices
+  hosts: asterisk
+  vars_files:
+    - /etc/ansible/vars/asterisk.yml
+
+  tasks:
+
+    - name: "Load Vars"
+      include_vars:
+        file: "asterisk.yml"
+
+    - name: "De-activate Normal Asterisk"
+      systemd:
+        state: stopped
+        enabled: false
+        name: asterisk
+
+
+    - name: "Generate systemd files for asterisk instance via Template"
+      template:
+        src: asterisk.service.j2
+        dest: "/etc/systemd/system/asterisk-{{ item.id }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      loop: "{{ instance }}"
+
+
+    - name: "reload Systemd instance"
+      systemd:
+        daemon_reload: true
+
+    - name: "Activate Asterisk instance"
+      systemd:
+        state: restarted
+        enabled: true
+        name: "asterisk-{{ item.id }}"
+      loop: "{{ instance }}"

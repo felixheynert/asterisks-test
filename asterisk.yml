@@ -1,0 +1,120 @@
+---
+- name: Install asterisk
+  hosts: asterisk
+  vars_files:
+    - /etc/ansible/vars/asterisk.yml
+
+  tasks:
+
+    - name: "Load Vars"
+      include_vars:
+        file: "asterisk.yml"
+
+    - name: "Install Asterisk"
+      become: true
+      become_user: root
+      action: >
+        {{ ansible_pkg_mgr }} name=vim,asterisk,sudo state=present update_cache=yes
+
+
+    - name: "copy users"
+      copy:
+        src: ./data/users.conf
+        dest: /etc/asterisk/users.conf
+        owner: asterisk
+        group: root
+        mode: '0644'
+        backup: yes
+    - name: "copy soundfile"
+      copy:
+        src: ./data/cisco_placetel_task.wav
+        dest: /usr/share/asterisk/sounds/
+        owner: asterisk
+        group: root
+        mode: '0644'
+        backup: yes
+
+    - name: Debug Vars
+      debug: msg="{{ item.id }} "
+      loop: "{{ instance }}"
+
+    ### Recursive remote copy wont work out of the box.. we simply use shell
+    - name: "Copy asterix etc to Instance"
+      command: cp -rp /etc/asterisk /etc/asterisk-{{ item.id }}
+      loop: "{{ instance }}"
+    - name: "Copy asterix var to Instance"
+      command: cp -rp /var/lib/asterisk /var/lib/asterisk-{{ item.id }}
+      loop: "{{ instance }}"
+    - name: "Copy asterix share to Instance"
+      command: cp -rp /usr/share/asterisk /usr/share/asterisk-{{ item.id }}
+      loop: "{{ instance }}"
+
+    - name: "Copy asterix spool to Instance"
+      # ddcommand: cp -r /var/spool/asterisk /var/spool/asterisk-{{ item.id }}
+      file:
+        path: "/var/spool/asterisk-{{ item.id }}"
+        owner: asterisk
+        group: root
+        state: directory
+      loop: "{{ instance }}"
+
+    - name: "Copy asterix run to Instance"
+      #command: cp -r /var/run/asterisk /var/run/asterisk-{{ item.id }}
+      file:
+        path: "/var/run/asterisk-{{ item.id }}"
+        owner: asterisk
+        group: root
+        state: directory
+      loop: "{{ instance }}"
+    - name: "Copy asterix log to Instance"
+      #command: cp -r /var/log/asterisk /var/log/asterisk-{{ item.id }}
+      file:
+        path: "/var/log/asterisk-{{ item.id }}"
+        owner: asterisk
+        group: asterisk
+        state: directory
+      loop: "{{ instance }}"
+
+    - name: "Generate asterix.conf via Template"
+      template:
+        src: asterisk.conf.j2
+        dest: "/etc/asterisk-{{ item.id }}/asterisk.conf"
+        owner: asterisk
+        group: root
+        mode: '0644'
+        backup: yes
+      loop: "{{ instance }}"
+
+    - name: "Generate Sip.conf via Template"
+      template:
+        src: sip.conf.j2
+        dest: "/etc/asterisk-{{ item.id }}/sip.conf"
+        owner: asterisk
+        group: root
+        mode: '0644'
+        backup: yes
+      loop: "{{ instance }}"
+
+    - name: "Generate manager.conf via Template"
+      template:
+        src: manager.conf.j2
+        dest: "/etc/asterisk-{{ item.id }}/manager.conf"
+        owner: asterisk
+        group: root
+        mode: '0644'
+        backup: yes
+      loop: "{{ instance }}"
+    - name: "Generate extensions via Template"
+      template:
+        src: extensions.ael.j2
+        dest: "/etc/asterisk-{{ item.id }}/extensions.ael"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      loop: "{{ instance }}"
+
+- name: Import Playbook
+  import_playbook: asterisk-systemd.yml
+
+# vim: set sw=2 ts=2 sts=2 expandtab

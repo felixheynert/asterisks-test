@@ -1,0 +1,48 @@
+---
+- name: Un-Install asterisk
+  hosts: asterisk
+  vars_files:
+    - /etc/ansible/vars/asterisk.yml
+
+  tasks:
+
+    - name: "Load Vars"
+      include_vars:
+        file: "asterisk.yml"
+
+    - name: "Un Install Asterisk"
+      become: true
+      become_user: root
+      action: >
+        {{ ansible_pkg_mgr }} name=asterisk state=absent update_cache=yes
+
+    - name: "copy soundfile"
+      file:
+        path: /usr/share/asterisk/sounds/cisco_placetel_task.wav
+        state: absent
+
+    ### Recursive remote copy wont work out of the box.. we simply use shell
+    - name: "Remove Instance"
+      file: 
+        path: "/etc/asterisk-{{ item.id }}"
+        #recurse: yes
+        state: absent
+      loop: "{{ instance }}"
+    - name: "Remove log"
+      file: 
+        path: "/var/log/asterisk-{{ item.id }}"
+        state: absent
+      loop: "{{ instance }}"
+    - name: "Remove run"
+      file: 
+        path: "/var/run/asterisk-{{ item.id }}"
+        state: absent
+      loop: "{{ instance }}"
+
+      
+    - name: "Remove spool"
+      file: 
+        path: "/var/spool/asterisk-{{ item.id }}"
+        state: absent
+      loop: "{{ instance }}"
+         
